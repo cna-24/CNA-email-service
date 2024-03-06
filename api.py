@@ -44,7 +44,8 @@ def process_order(cartId):
         'Content-Type': 'application/json'
     }
     payload = {
-        'personalizations': [{'to': [{'email': email_address}], 'subject': subject}],
+        #'personalizations': [{'to': [{'email': email_address}], 'subject': subject}],
+        'personalizations': [{'to': [{'email': 'sebbasisak2@gmail.com'}], 'subject': subject}],
         'from': {'email': 'isak.sebbas@arcada.fi'},
         'content': [{'type': 'text/plain', 'value': body}]
     }
