@@ -1,64 +1,87 @@
-# api.py
-
 from flask import Flask, request, jsonify
 import requests
 import jwt
+import os
+from sendgrid import SendGridAPIClient
+from sendgrid.helpers.mail import Mail
 from config import SENDGRID_API_KEY, JWT_SECRET_KEY
 
 app = Flask(__name__)
 
-# Define the endpoint to receive data and send email
-@app.route('/send_email', methods=['POST'])
-def send_email():
-    # Get JWT token from request headers
-    token = request.headers.get('Authorization')
+#####
 
-    # Verify JWT token
+# Route for processing an order and sending email
+@app.route('/process-order/<cartId>', methods=['POST'])
+def process_order(cartId):
+    # Extract JWT token from request headers
+    token = request.headers.get('Authorization')
     if not token:
         return jsonify({'error': 'Token is missing!'}), 401
 
     try:
-        # Decode JWT token and verify
         jwt_payload = jwt.decode(token, JWT_SECRET_KEY, algorithms=['HS256'])
     except jwt.ExpiredSignatureError:
         return jsonify({'error': 'Token has expired!'}), 401
     except jwt.InvalidTokenError:
         return jsonify({'error': 'Invalid token!'}), 401
 
-    # Get data from request
-    data = request.get_json()
+    express_api_url = f'https://cna-order-service.azurewebsites.net/cart/{cartId}'
+    try:
+        response = requests.get(express_api_url)
+        response.raise_for_status()
+        cart_data = response.json()
+    except Exception as e:
+        return jsonify({'error': f'Failed to retrieve cart data: {str(e)}'}), 500
 
-    # Extract email data
-    email_address = data.get('email_address')
-    subject = data.get('subject')
-    body = data.get('body')
+    email_address = cart_data.get('email')
+    subject = 'Your Order Details'
+    body = f'Your order with ID {cartId} has been processed. Details: {cart_data}'
 
-    # Call function to send email
-    sendgrid_response = send_email_with_sendgrid(email_address, subject, body)
-
-    return jsonify(sendgrid_response)
-
-# Function to send email using SendGrid service
-def send_email_with_sendgrid(email_address, subject, body):
+    # Send email using SendGrid
     sendgrid_url = 'https://api.sendgrid.com/v3/mail/send'
-
     headers = {
         'Authorization': 'Bearer ' + SENDGRID_API_KEY,
         'Content-Type': 'application/json'
     }
-
     payload = {
-        'personalizations': [{
-            'to': [{'email': email_address}],
-            'subject': subject
-        }],
-        'from': {'email': 'your@email.com'},
+        'personalizations': [{'to': [{'email': email_address}], 'subject': subject}],
+        'from': {'email': 'isak.sebbas@arcada.fi'},
         'content': [{'type': 'text/plain', 'value': body}]
     }
+    try:
+        response = requests.post(sendgrid_url, json=payload, headers=headers)
+        response.raise_for_status()
+        sendgrid_response = response.json()
+    except Exception as e:
+        return jsonify({'error': f'Kunde inte skicka e-postmeddelandet:: {str(e)}'}), 500
 
-    response = requests.post(sendgrid_url, json=payload, headers=headers)
-
-    return response.json()
+    # Return success response
+    return jsonify({'message': 'Beställning gått igenom och sändning av meddelandet lyckades.'}), 200
 
 if __name__ == '__main__':
     app.run(debug=True)
+
+
+# using SendGrid's Python Library
+# https://github.com/sendgrid/sendgrid-python
+    
+'''
+import os
+from sendgrid import SendGridAPIClient
+from sendgrid.helpers.mail import Mail
+
+message = Mail(
+    from_email='from_email@example.com',
+    to_emails='to@example.com',
+    subject='Sending with Twilio SendGrid is Fun',
+    html_content='<strong>and easy to do anywhere, even with Python</strong>')
+try:
+    sg = SendGridAPIClient(os.environ.get('SENDGRID_API_KEY'))
+    response = sg.send(message)
+    print(response.status_code)
+    print(response.body)
+    print(response.headers)
+except Exception as e:
+    print(e.message)
+    
+'''
