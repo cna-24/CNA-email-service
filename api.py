@@ -33,7 +33,7 @@ def process_order(cartId):
     except Exception as e:
         return jsonify({'error': f'Failed to retrieve cart data: {str(e)}'}), 500
 
-    email_address = cart_data.get('email')
+    #email_address = cart_data.get('email')
     subject = 'Your Order Details'
     body = f'Your order with ID {cartId} has been processed. Details: {cart_data}'
 
