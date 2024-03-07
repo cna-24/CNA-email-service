@@ -33,11 +33,9 @@ def process_order(cartId):
     except Exception as e:
         return jsonify({'error': f'Failed to retrieve cart data: {str(e)}'}), 500
 
-    #email_address = cart_data.get('email')
     user_id = cart_data.get('user_id')
     product_data = cart_data.get('products')
 
-    # Query the User API to retrieve user email
     user_api_url = f'https://cna-user-api.duckdns.org/user/{user_id}'  # Update with your actual URL
     headers = {'Authorization': f'Bearer {token}'}
     try:
@@ -48,15 +46,11 @@ def process_order(cartId):
     except Exception as e:
         return jsonify({'error': f'Failed to retrieve user email: {str(e)}'}), 500
 
-
-    # Prepare email content
     subject = 'Your Order Details'
     body = f'Your order with ID {cartId} has been processed. Details: {cart_data}'
     for product in product_data:
         body += f"{product.get('name')}: {product.get('quantity')}\n"
 
-
-    # Send email using SendGrid
     sendgrid_url = 'https://api.sendgrid.com/v3/mail/send'
     headers = {
         'Authorization': 'Bearer ' + SENDGRID_API_KEY,
@@ -80,27 +74,3 @@ def process_order(cartId):
 if __name__ == '__main__':
     app.run(debug=True)
 
-
-# using SendGrid's Python Library
-# https://github.com/sendgrid/sendgrid-python
-    
-'''
-import os
-from sendgrid import SendGridAPIClient
-from sendgrid.helpers.mail import Mail
-
-message = Mail(
-    from_email='from_email@example.com',
-    to_emails='to@example.com',
-    subject='Sending with Twilio SendGrid is Fun',
-    html_content='<strong>and easy to do anywhere, even with Python</strong>')
-try:
-    sg = SendGridAPIClient(os.environ.get('SENDGRID_API_KEY'))
-    response = sg.send(message)
-    print(response.status_code)
-    print(response.body)
-    print(response.headers)
-except Exception as e:
-    print(e.message)
-    
-'''
