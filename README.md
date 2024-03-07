@@ -3,7 +3,9 @@ Description:
 
 This Email API is a web service designed to facilitate the seamless delivery of emails based on incoming requests from the Cart API. Developed to scale with other applications within our app, the Email API sends the receipts to our clients. 
 
-The API listens over the address https://cna-2024-email-api.azurewebsites.net/
+The API listens over the address https://cna-2024-email-api.azurewebsites.net/process-order/<cartId>
+
+
 
 How It Works:
 
