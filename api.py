@@ -34,8 +34,27 @@ def process_order(cartId):
         return jsonify({'error': f'Failed to retrieve cart data: {str(e)}'}), 500
 
     #email_address = cart_data.get('email')
+    user_id = cart_data.get('user_id')
+    product_data = cart_data.get('products')
+
+    # Query the User API to retrieve user email
+    user_api_url = f'https://cna-user-api.duckdns.org/user/{user_id}'  # Update with your actual URL
+    headers = {'Authorization': f'Bearer {token}'}
+    try:
+        response = requests.get(user_api_url, headers=headers)
+        response.raise_for_status()
+        user_data = response.json()
+        email_address = user_data.get('email')
+    except Exception as e:
+        return jsonify({'error': f'Failed to retrieve user email: {str(e)}'}), 500
+
+
+    # Prepare email content
     subject = 'Your Order Details'
     body = f'Your order with ID {cartId} has been processed. Details: {cart_data}'
+    for product in product_data:
+        body += f"{product.get('name')}: {product.get('quantity')}\n"
+
 
     # Send email using SendGrid
     sendgrid_url = 'https://api.sendgrid.com/v3/mail/send'
@@ -44,8 +63,7 @@ def process_order(cartId):
         'Content-Type': 'application/json'
     }
     payload = {
-        #'personalizations': [{'to': [{'email': email_address}], 'subject': subject}],
-        'personalizations': [{'to': [{'email': 'sebbasisak2@gmail.com'}], 'subject': subject}],
+        'personalizations': [{'to': [{'email': email_address}], 'subject': subject}],
         'from': {'email': 'isak.sebbas@arcada.fi'},
         'content': [{'type': 'text/plain', 'value': body}]
     }
