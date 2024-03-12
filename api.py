@@ -5,22 +5,6 @@ from config import SENDGRID_API_KEY, JWT_SECRET_KEY, TOKEN
 
 app = Flask(__name__)
 
-def get_user_email(user_id, token):
-    """
-    Retrieves the user's email from the User Service API.
-    """
-    user_api_url = f'https://cna-user-api.duckdns.org/user/{user_id}'
-    headers = {'Authorization': f'Bearer {token}'}
-    
-    try:
-        response = requests.get(user_api_url, headers=headers)
-        response.raise_for_status()
-        user_data = response.json()
-        return user_data.get('email')
-    except Exception as e:
-        print(f'Error retrieving user email: {e}')
-        return None
-
 def send_order_confirmation_email(email_address, order_data):
     """
     Sends an order confirmation email to the specified address.
@@ -46,6 +30,7 @@ def send_order_confirmation_email(email_address, order_data):
         sendgrid_response = response.json()
         return sendgrid_response
     except Exception as e:
+        print(f'SendGrid response: {response.text}')
         print(f'Failed to send email: {e}')
         return None
 
@@ -70,11 +55,11 @@ def process_order():
         return jsonify({'error': 'Invalid token!'}), 401
 
     order_data = request.json.get('orderData', {})
-    user_id = jwt_payload.get('id')
-    email_address = get_user_email(user_id, token)
+    # Extract email directly from the JWT payload
+    email_address = jwt_payload.get('email')  # Assuming 'email' claim exists in JWT
 
     if email_address is None:
-        return jsonify({'error': 'Failed to retrieve user email'}), 500
+        return jsonify({'error': 'Email not found in JWT payload'}), 400
 
     sendgrid_response = send_order_confirmation_email(email_address, order_data)
     if sendgrid_response is None:
