@@ -11,12 +11,23 @@ app.use(cors());
 app.use(express.json());
 async function sendOrderConfirmationEmail(emailAddress, orderData) {
     const subject = 'Your Order Details';
-    let body = `Your order has been processed. Details:\n`;
 
+    console.log(orderData)
+    let body = `Your order has been processed. Details:\n`;
+    let totalPrice = 0;
     // Iterate through each row in orderData.rows
     orderData.rows.forEach(row => {
-        body += `${row.product.name}: ${row.quantity}\n`; // Assuming product name and quantity are available
+        body += `${row.product}: ${row.quantity} x ${row.price}€\n`; // Assuming product name, quantity, and price are available
+        totalPrice += row.quantity * row.price; // Calculate total price
     });
+
+    body += `\nTotal Price: ${totalPrice}€\n`;
+    // Add additional order details to the email body
+    body += `\nOrder ID: ${orderData.id}\n`;
+    body += `User ID: ${orderData.user_id}\n`;
+    body += `Username: ${orderData.username}\n`;
+    body += `Date: ${orderData.date}\n`;
+    body += `Address: ${orderData.address}\n`;
 
     const sendgridUrl = 'https://api.sendgrid.com/v3/mail/send';
 
@@ -75,13 +86,13 @@ app.post('/process-order', async (req, res) => {
 
     try {
         const authUser = jwt.verify(token, process.env.TOKEN);
-        //console.log(authUser);
+        console.log(authUser);
 
         const orderData = req.body.orderData || {};
         req.authUser = authUser;
         //console.log(req.authUser.email);
         const emailAddress = req.authUser.email;
-        //console.log(orderData);
+        console.log(orderData);
 
         if (!emailAddress) {
             return res.status(400).json({ error: 'Email not found in JWT payload' });
